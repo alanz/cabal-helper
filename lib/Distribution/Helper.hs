@@ -491,7 +491,8 @@ findLibexecExe :: IO FilePath
 findLibexecExe = do
     libexecdir <- getLibexecDir
     let exeName = "cabal-helper-wrapper"
-        exe = libexecdir </> exeName FP.<.> exeExtension'
+        exeFile = exeName FP.<.> exeExtension'
+        exe = libexecdir </> exeFile
 
     exists <- doesFileExist exe
 
@@ -516,7 +517,7 @@ findLibexecExe = do
              --       hash of the installed cabal-helper, so is
              --       guaranteed to be the correct version.
              binDir <- getBinDir
-             let exe'' = binDir </> exeName
+             let exe'' = binDir </> exeFile
              exists'' <- doesFileExist exe''
              if exists''
                then return exe''
