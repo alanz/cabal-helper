@@ -41,6 +41,7 @@ import Text.Printf (printf)
 import Text.Show.Pretty
 import Prelude
 
+import CabalHelper.Compiletime.Cabal (findCabalFile)
 import CabalHelper.Compiletime.Types
 import CabalHelper.Compiletime.Types.RelativePath
 import CabalHelper.Shared.Common
@@ -82,13 +83,47 @@ paths qe@QueryEnv{qeProjLoc=ProjLocStackYaml stack_yaml} cwd
   where
     split l = let (key, ' ' : val) = span (not . isSpace) l in (key, val)
 
+-- listPackageCabalFiles :: QueryEnvI c 'Stack -> IO [CabalFile]
+-- listPackageCabalFiles qe@QueryEnv{qeProjLoc=ProjLocStackYaml stack_yaml}
+--   = handle ioerror $ do
+--   let projdir = takeDirectory stack_yaml
+--   out <- readStackCmd qe (Just projdir)
+--     [ "ide", "packages", "--cabal-files", "--stdout" ]
+--   return $ map CabalFile $ lines out
+--   where
+--     ioerror :: IOError -> IO a
+--     ioerror ioe = (=<<) (fromMaybe (throwIO ioe)) $ runMaybeT $ do
+--       stack_exe <- MaybeT $ findExecutable $ stackProgram $ qePrograms qe
+--       stack_ver_str
+--         <- liftIO $ trim <$> readStackCmd qe Nothing ["--numeric-version"]
+--       stack_ver <- MaybeT $ return $ parseVerMay stack_ver_str
+--       guard $ stack_ver < makeVersion [1,9,4]
+
+--       let prog_cfg = ppShow $ qePrograms qe
+
+--       liftIO $ hPutStrLn stderr $ printf
+--         "\nerror: stack version too old!\
+--         \\n\n\
+--         \You have '%s' installed but cabal-helper needs at least\n\
+--         \stack version 1.9.4+.\n\
+--         \\n\
+--         \FYI cabal-helper is using the following `stack` executable:\n\
+--         \  %s\n\
+--         \\n\
+--         \Additional debugging info: QueryEnv qePrograms =\n\
+--         \  %s\n" stack_ver_str stack_exe prog_cfg
+--       mzero
+
+-- | Workaround for stack before 1.9.4
 listPackageCabalFiles :: QueryEnvI c 'Stack -> IO [CabalFile]
 listPackageCabalFiles qe@QueryEnv{qeProjLoc=ProjLocStackYaml stack_yaml}
   = handle ioerror $ do
   let projdir = takeDirectory stack_yaml
   out <- readStackCmd qe (Just projdir)
-    [ "ide", "packages", "--cabal-files", "--stdout" ]
-  return $ map CabalFile $ lines out
+    [ "query", "locals" ]
+  let packageDirs = catMaybes $ map getPath $ lines out
+  cabalFiles <- mapM findCabalFile $ filter (/= "") packageDirs
+  return $ map CabalFile cabalFiles
   where
     ioerror :: IOError -> IO a
     ioerror ioe = (=<<) (fromMaybe (throwIO ioe)) $ runMaybeT $ do
@@ -96,7 +131,7 @@ listPackageCabalFiles qe@QueryEnv{qeProjLoc=ProjLocStackYaml stack_yaml}
       stack_ver_str
         <- liftIO $ trim <$> readStackCmd qe Nothing ["--numeric-version"]
       stack_ver <- MaybeT $ return $ parseVerMay stack_ver_str
-      guard $ stack_ver < makeVersion [1,9,4]
+      guard $ stack_ver < makeVersion [1,9,3]
 
       let prog_cfg = ppShow $ qePrograms qe
 
@@ -112,6 +147,13 @@ listPackageCabalFiles qe@QueryEnv{qeProjLoc=ProjLocStackYaml stack_yaml}
         \Additional debugging info: QueryEnv qePrograms =\n\
         \  %s\n" stack_ver_str stack_exe prog_cfg
       mzero
+    getPath :: String -> Maybe String
+    getPath str = r
+      where
+        str' = dropWhile (==' ') str
+        r = if isPrefixOf "path: " str'
+        then Just (drop (length "path: ") str')
+        else Nothing
 
 workdirArg :: QueryEnvI c 'Stack -> [String]
 workdirArg QueryEnv{qeDistDir=DistDirStack mworkdir} =
