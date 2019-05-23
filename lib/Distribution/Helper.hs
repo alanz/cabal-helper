@@ -95,6 +95,10 @@ module Distribution.Helper (
   -- * Managing @dist/@
   , prepare
   , writeAutogenFiles
+
+  -- * AZ ghc-mod hackery
+  , CabalFile(..)
+  , Unit(..) -- AZ:note: temporarily breaking abstraction
   ) where
 
 import Cabal.Plan hiding (Unit, UnitId, uDistDir)
