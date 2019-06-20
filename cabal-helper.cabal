@@ -35,6 +35,8 @@ extra-source-files:  README.md
                      src/CabalHelper/Runtime/*.hs
 
                      tests/*.hs
+                     tests/stack-resolvers
+                     tests/cabal-versions
 
                      tests/exelib/*.hs
                      tests/exelib/*.cabal
@@ -171,6 +173,8 @@ test-suite compile-test
   hs-source-dirs:      tests
   ghc-options:         -Wall
   build-depends:       c-h-internal
+
+
 
 test-suite ghc-session
   import:              build-deps, extensions

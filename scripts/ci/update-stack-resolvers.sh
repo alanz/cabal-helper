@@ -1,4 +1,6 @@
 #!/bin/sh
+# Example:
+#     $ scripts/ci/update-stack-resolvers.sh | tee tests/stack-resolvers
 
 mkdir -p /tmp/stack-resolvers/
 
